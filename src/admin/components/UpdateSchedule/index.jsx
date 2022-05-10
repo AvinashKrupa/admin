@@ -10,7 +10,8 @@ import UpdateSlotGenerator from "./UpdateSlotGenerator";
 import { getData } from "../../../_utils/localStorage/LocalAsyncStorage";
 import { constants, convert24hto12h } from "../../../_utils/common-utils";
 import Checkbox from "../../commons/Checkbox";
-import _ from "lodash";
+import _, { identity } from "lodash";
+import SlotGenerator from "./SlotGenerator";
 
 const UpdateSchedule = ({ data }) => {
   const [selectedDays, setSelectedDays] = useState([
@@ -22,6 +23,12 @@ const UpdateSchedule = ({ data }) => {
     { day: "Friday", isChecked: false },
     { day: "Saturday", isChecked: false },
   ]);
+  const [slotsAllDay, setSlotsAllDay] = useState([]);
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [daySlots, setDaySlots] = useState([]);
+  const [dataMorningShiftAllDay, setDataMorningShiftAllDay] = useState([]);
+  const [eveningSlots, setEveningSlots] = useState([]);
+  const [dataEveningShiftAllDay, setDataEveningShiftAllDay] = useState([]);
   const [isDayShift, setIsDayShift] = useState(false);
   const [isEveningShift, setIsEveningShift] = useState(false);
   const [dayShiftFrom, setDayShiftFrom] = useState("");
@@ -48,6 +55,89 @@ const UpdateSchedule = ({ data }) => {
   );
 
   useEffect(() => {
+    if (isAllDay) {
+      setSelectedDays(
+        selectedDays.map((item) => {
+          item.isChecked = true;
+          return item;
+        })
+      );
+    }
+  }, [isAllDay]);
+
+  useEffect(() => {
+    let dayCounter = 0;
+    selectedDays.map((item) => {
+      if (item.isChecked) {
+        dayCounter++;
+      }
+    });
+    //  setIsAllDay(dayCounter == 7 ? true : false);
+  }, [selectedDays]);
+
+  useEffect(() => {
+    if (validateSlots(1)) getSlotsAllDay(1, dayShiftFrom, dayShiftTo);
+    return () => {};
+  }, [dayShiftFrom, dayShiftTo, isDayShift]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (validateSlots(2)) getSlotsAllDay(2, eveningShiftFrom, eveningShiftTo);
+
+    return () => {};
+  }, [eveningShiftFrom, eveningShiftTo, isEveningShift]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function validateSlots(type) {
+    let momentShift1From, momentShift1To;
+    let momentShift2From, momentShift2To;
+    switch (type) {
+      case 1:
+        if (dayShiftFrom === "" || dayShiftTo === "") return true;
+        momentShift1From = moment(dayShiftFrom, "HH:mm");
+        momentShift1To = moment(dayShiftTo, "HH:mm");
+        if (!momentShift1From.isBefore(momentShift1To)) {
+          toast.error("Morning shift start time cannot be after end time", {
+            appearance: "error",
+          });
+          return false;
+        }
+        if (eveningShiftFrom !== "" && eveningShiftTo !== "") {
+          momentShift2From = moment(eveningShiftFrom, "HH:mm");
+          if (!momentShift1To.isBefore(momentShift2From)) {
+            toast.error(
+              "Morning shift end time cannot be after evening shift start time",
+              { appearance: "error" }
+            );
+            return false;
+          }
+        }
+        return true;
+      case 2:
+        if (eveningShiftFrom === "" || eveningShiftTo === "") return true;
+        momentShift2From = moment(eveningShiftFrom, "HH:mm");
+        momentShift2To = moment(eveningShiftTo, "HH:mm");
+        if (!momentShift2From.isBefore(momentShift2To)) {
+          toast.error("Evening shift start time cannot be after end time", {
+            appearance: "error",
+          });
+          return false;
+        }
+        if (dayShiftFrom !== "" && dayShiftTo !== "") {
+          momentShift1To = moment(dayShiftTo, "HH:mm");
+          if (!momentShift1To.isBefore(momentShift2From)) {
+            toast.error(
+              "Evening shift start time cannot be earlier than morning shift end time",
+              { appearance: "error" }
+            );
+            return false;
+          }
+        }
+        return true;
+      default:
+        toast.error("It should not come here", { appearance: "error" });
+    }
+  }
+
+  useEffect(() => {
     getDoctorDetails();
     getSlots();
     return () => {};
@@ -65,7 +155,7 @@ const UpdateSchedule = ({ data }) => {
     const selectedDate = `${moment(date).format("YYYY-MM-DD")}`;
     setCurrentDate(selectedDate);
     setSelectedDay(moment(date).format("DD"));
-    setDate(selectedDate);
+    //setDate(selectedDate);
     setSlot("");
   }
 
@@ -79,7 +169,7 @@ const UpdateSchedule = ({ data }) => {
     const selectedDate = `${moment(date).format("YYYY-MM-DD")}`;
     setCurrentDate(selectedDate);
     setSelectedDay(dateNumber);
-    setDate(date);
+    //setDate(date);
     setSlot("");
   };
 
@@ -120,7 +210,7 @@ const UpdateSchedule = ({ data }) => {
       };
     } else {
       toast.error("This slot already have an appointment");
-      return
+      return;
     }
     fetchApi({ url: "v1/doctor/updateSchedule", body: params, method: "POST" })
       .then((response) => {
@@ -142,6 +232,16 @@ const UpdateSchedule = ({ data }) => {
   }
 
   function updateAvailabilityByDays() {
+    let slots = [];
+
+    if (isDayShift) {
+      slots = [...slots, ...daySlots];
+    }
+
+    if (isEveningShift) {
+      slots = [...slots, ...eveningSlots];
+    }
+
     let params = {
       avail: {
         day: {
@@ -154,34 +254,48 @@ const UpdateSchedule = ({ data }) => {
           sat: selectedDays[6].isChecked,
         },
         shift: {
-          ...(isDayShift ? {shift1: {
-            start: moment(
-              `${moment().format("DD-MMM-YYYY")} ${dayShiftFrom}`
-            ).format("HH:mm"),
-            end: moment(
-              `${moment().format("DD-MMM-YYYY")} ${dayShiftTo}`
-            ).format("HH:mm"),
-          }}: {
-            shift1: {
-              start: '',
-              end: '',
-          }}),
-           ...(isEveningShift ? {shift2: {
-            start: moment(
-              `${moment().format("DD-MMM-YYYY")} ${eveningShiftFrom}`
-            ).format("HH:mm"),
-            end: moment(
-              `${moment().format("DD-MMM-YYYY")} ${eveningShiftTo}`
-            ).format("HH:mm"),
-          }}: {shift2: {
-            start: '',
-            end: '',
-          }})
+          ...(isDayShift
+            ? {
+                shift1: {
+                  start: moment(
+                    `${moment().format("DD-MMM-YYYY")} ${dayShiftFrom}`
+                  ).format("HH:mm"),
+                  end: moment(
+                    `${moment().format("DD-MMM-YYYY")} ${dayShiftTo}`
+                  ).format("HH:mm"),
+                },
+              }
+            : {
+                shift1: {
+                  start: "",
+                  end: "",
+                },
+              }),
+          ...(isEveningShift
+            ? {
+                shift2: {
+                  start: moment(
+                    `${moment().format("DD-MMM-YYYY")} ${eveningShiftFrom}`
+                  ).format("HH:mm"),
+                  end: moment(
+                    `${moment().format("DD-MMM-YYYY")} ${eveningShiftTo}`
+                  ).format("HH:mm"),
+                },
+              }
+            : {
+                shift2: {
+                  start: "",
+                  end: "",
+                },
+              }),
         },
       },
       user_id: data.user._id,
-      type: constants.USER_TYPE_DOCTOR
+      type: constants.USER_TYPE_DOCTOR,
     };
+    if (isAllDay) {
+      params.avail.slots = slots;
+    }
     fetchApi({
       url: "v1/user/updateProfile",
       method: "POST",
@@ -189,21 +303,21 @@ const UpdateSchedule = ({ data }) => {
     })
       .then((response) => {
         if (response.status === 200) {
-            getSlots();
+          getSlots();
           toast.success(response.message);
         } else {
           toast.error(response.message);
         }
       })
       .catch((error) => {
-        toast.error(error.response.message);
+        toast.error(error?.message);
       });
   }
 
   function getSlots() {
     let params = {
       doctor_id: data.additional_info._id,
-      look_ahead:true,
+      look_ahead: false,
       date: currentDate,
     };
 
@@ -239,7 +353,7 @@ const UpdateSchedule = ({ data }) => {
         }
       })
       .catch((error) => {
-        toast.error(error.response.message);
+        toast.error(error?.message);
       });
   }
 
@@ -263,11 +377,16 @@ const UpdateSchedule = ({ data }) => {
             { day: "Friday", isChecked: false },
             { day: "Saturday", isChecked: false },
           ];
+          //    setSlotsAllDay(response?.data?.slots);
           let days = response.data.day;
           let shift = response.data.shift;
+          let dayCounter = 0;
           Object.keys(days).forEach((info, index) => {
             if (index < 7) {
               dataDay[index].isChecked = days[info];
+              if (days[info]) {
+                dayCounter++;
+              }
             }
           });
           if (shift.shift1 && shift.shift1.start != "") {
@@ -281,12 +400,15 @@ const UpdateSchedule = ({ data }) => {
             setIsEveningShift(true);
           }
           setSelectedDays(JSON.parse(JSON.stringify(dataDay)));
+          // if (dayCounter == 7) {
+          //   setIsAllDay(true);
+          // }
         } else {
           toast.error(response.message);
         }
       })
       .catch((error) => {
-        toast.error(error.response.message);
+        toast.error(error?.message);
       });
   }
 
@@ -371,9 +493,37 @@ const UpdateSchedule = ({ data }) => {
     return (
       <>
         <Row>
-          <span style={{ marginTop: "32px" }} className="section-sub-title">
-            General Availability
-          </span>
+          <Col>
+            <span style={{ marginTop: "32px" }} className="section-sub-title">
+              General Availability
+            </span>
+          </Col>
+          <Col>
+            <InputGroup>
+              <span className="all-day-slot">All days</span>
+              <div
+                style={{
+                  marginTop: "auto",
+                  marginBottom: "auto",
+                  marginLeft: "20%",
+                }}
+              >
+                <Checkbox
+                  id="all-day-term"
+                  checked={isAllDay}
+                  handleSelect={() => {
+                    if (!isAllDay) {
+                      if (validateSlots(2))
+                        getSlotsAllDay(2, eveningShiftFrom, eveningShiftTo);
+                      if (validateSlots(1))
+                        getSlotsAllDay(1, dayShiftFrom, dayShiftTo);
+                    }
+                    setIsAllDay(!isAllDay);
+                  }}
+                />
+              </div>
+            </InputGroup>
+          </Col>
         </Row>
         <Row className={"days-selection-container"}>
           {selectedDays.map((item, index) => {
@@ -437,6 +587,7 @@ const UpdateSchedule = ({ data }) => {
             </Col>
           )}
         </Row>
+        {isAllDay && isDayShift && dayShiftSlotAllDay()}
         <div className="slot-evening">
           <Row>
             <Col lg="3">
@@ -478,6 +629,7 @@ const UpdateSchedule = ({ data }) => {
               </Col>
             )}
           </Row>
+          {isAllDay && isEveningShift && EveningShiftSlotAllDay()}
           <Row style={{ justifyContent: "center" }}>
             <Button
               className="update-button"
@@ -490,6 +642,108 @@ const UpdateSchedule = ({ data }) => {
         </div>
       </>
     );
+  };
+
+  function getSlotsAllDay(type, from, to) {
+    const date = moment(`${currentDate}`, "DD-MM-YYYY").format("YYYY-MM-DD");
+    let fromDate = `${date}T${from}:00.000+05:30`;
+    let toDate = `${date}T${to}:59.999+05:30`;
+    let params = {
+      start: fromDate,
+      end: toDate,
+    };
+    fetchApi({
+      url: "v1/slot/getSlots",
+      method: "POST",
+      body: params,
+    })
+      .then((response) => {
+        if (response.status === 200) {
+          let data = response.data.map((info) => {
+            const time = info.start.split(":");
+            info.timeInNumber = time[0];
+            info.time = time[0];
+            return info;
+          });
+
+          let slotIds = data.map((slot) => slot.slot_id);
+
+          let group = data.reduce((r, a) => {
+            r[a.time] = [...(r[a.time] || []), a];
+            return r;
+          }, {});
+          if (type === 1) {
+            setDataMorningShiftAllDay(group);
+            setDaySlots([...slotIds]);
+          } else {
+            setDataEveningShiftAllDay(group);
+            setEveningSlots([...slotIds]);
+          }
+        } else {
+          toast.error(response.message, { appearance: "error" });
+        }
+      })
+      .catch((error) => {
+        toast.error(error?.message, { appearance: "error" });
+      });
+  }
+  const handleDaySlotClick = (id) => {
+    const list = JSON.parse(JSON.stringify(daySlots));
+    const index = list.indexOf(id);
+
+    if (index > -1) {
+      list.splice(index, 1);
+      setDaySlots(list);
+    } else {
+      setDaySlots([...list, id]);
+    }
+    console.log("Data", daySlots);
+  };
+
+  const handleEveningSlotClick = (id) => {
+    const list = JSON.parse(JSON.stringify(eveningSlots));
+    const index = list.indexOf(id);
+
+    if (index > -1) {
+      list.splice(index, 1);
+      setEveningSlots(list);
+    } else {
+      setEveningSlots([...list, id]);
+    }
+  };
+
+  const dayShiftSlotAllDay = () => {
+    return Object.entries(dataMorningShiftAllDay)
+      .sort()
+      .map((timeSlot, index) => {
+        return (
+          <SlotGenerator
+            key={index}
+            slotsAllDay={slotsAllDay}
+            selectedSlots={daySlots}
+            handleSlotClick={handleDaySlotClick}
+            label={`${timeSlot[0]}`}
+            slots={timeSlot[1]}
+            updateSlots={true}
+          />
+        );
+      });
+  };
+
+  const EveningShiftSlotAllDay = () => {
+    return Object.entries(dataEveningShiftAllDay).map((timeSlot, index) => {
+      return (
+        <SlotGenerator
+          key={index}
+          slotsAllDay={slotsAllDay}
+          selectedSlots={eveningSlots}
+          handleSlotClick={handleEveningSlotClick}
+          label={`${timeSlot[0]}`}
+          slots={timeSlot[1]}
+          updateSlots={true}
+        />
+      );
+    });
   };
 
   return (

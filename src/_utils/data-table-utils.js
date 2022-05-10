@@ -59,15 +59,24 @@ const createProfileLink = (record) => {
     : "/profile";
 };
 
-export const renderNameForAppointment = (record, prefix, suffix, includeImage = false, type) => {
+export const renderNameForAppointment = (
+  record,
+  prefix,
+  suffix,
+  includeImage = false,
+  type
+) => {
   return (
     <h2 className="table-avatar">
       {includeImage && (
-        <Link to={createProfileLinkForAppointment(record,type)} className="avatar avatar-sm mr-2">
+        <Link
+          to={createProfileLinkForAppointment(record, type)}
+          className="avatar avatar-sm mr-2"
+        >
           <img alt="" src={record.user_id.dp} />
         </Link>
       )}
-      <Link to={createProfileLinkForAppointment(record,type)}>
+      <Link to={createProfileLinkForAppointment(record, type)}>
         <a>{`${prefix ? prefix + " " : ""}${getFullName(record)}${
           suffix ? " " + suffix : ""
         }`}</a>
@@ -76,23 +85,14 @@ export const renderNameForAppointment = (record, prefix, suffix, includeImage = 
   );
 };
 
-const createProfileLinkForAppointment = (record,type) => {
-  let url = ''
-  if(type === "patient"){
-    url =record
-    ? "/profile/" +
-        record?.user_id?._id +
-        "/1"
-    : "/profile"
+const createProfileLinkForAppointment = (record, type) => {
+  let url = "";
+  if (type === "patient") {
+    url = record ? "/profile/" + record?.user_id + "/1" : "/profile";
+  } else if (type === "doctor") {
+    url = record ? "/profile/" + record?.user_id + "/2" : "/profile";
   }
-  else if(type === 'doctor'){
-   url =  record
-    ? "/profile/" +
-        record?.user_id +
-        "/2"
-    : "/profile";
-  }
-  return url
+  return url;
 };
 
 export const renderChips = (items) => {
@@ -101,8 +101,38 @@ export const renderChips = (items) => {
   });
 };
 export const renderText = (text) => {
-  return <div className="sorting_1">{changeCaseFirstLetter(text)}</div>;
+  return (
+    <div
+      className="sorting_1"
+      style={{
+        wordWrap: "break-word",
+        wordBreak: "break-word",
+        whiteSpace: "initial",
+      }}
+    >
+      {changeCaseFirstLetter(text)}
+    </div>
+  );
 };
+
+export const renderEnabledStatus = (value) => {
+  return (
+    <div className="sorting_1">
+      {value == "active" ? "Enabled" : "Disabled"}
+    </div>
+  );
+};
+
+export const renderTextWithLink = (text, url) => {
+  return (
+    <h2 className="table-avatar">
+      <a target="_blank" href={url} className="avatar avatar-sm mr-2">
+        {text}
+      </a>
+    </h2>
+  );
+};
+
 export const renderBoolean = (value) => {
   return <div className="sorting_1">{value ? "Enabled" : "Disabled"}</div>;
 };
@@ -251,6 +281,18 @@ export const renderEditDisableActions = (
               {record.enabled ? "Disable" : " Enable"}
             </a>
           </>
+        ) : type == 2 ? (
+          <>
+            <a
+              href="#0"
+              className="btn btn-sm bg-success-light"
+              onClick={() => {
+                handleShow("edit");
+              }}
+            >
+              <i className="fe fe-pencil"></i> Edit
+            </a>
+          </>
         ) : (
           <>
             {record.status == "inactive" || record.status == "active" ? (
@@ -329,13 +371,15 @@ export const getColumnSearchProps = (
         onChange={(e) =>
           setSelectedKeys(e.target.value ? [e.target.value] : [])
         }
-        onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+        onPressEnter={() =>
+          handleSearch(selectedKeys, confirm, dataIndex, "name")
+        }
         style={{ marginBottom: 8, display: "block" }}
       />
       <Space>
         <Button
           type="primary"
-          onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+          onClick={() => handleSearch(selectedKeys, confirm, dataIndex, "name")}
           size="small"
           style={{ width: 90 }}
         >
@@ -386,7 +430,12 @@ export const getColumnDropDownSearchProps = (
         style={{ width: 120 }}
         onChange={(value) => {
           setSelectedKeys(value ? (value === "All" ? [] : [value]) : []);
-          handleSearch(selectedKeys, confirm, dataIndex);
+          handleSearch(
+            value ? (value === "All" ? [] : [value]) : [],
+            confirm,
+            dataIndex,
+            "spcl_name"
+          );
         }}
       >
         <Select.Option value="All">All</Select.Option>
@@ -413,16 +462,31 @@ export const getColumnDropDownSearchProps = (
   // },
 });
 
-export const getColumnFilterProps = (filterArray, recordValueToCompare) => {
+export const getColumnFilterProps = (
+  filterArray,
+  recordValueToCompare,
+  isLocalFilter = true
+) => {
   filterArray = filterArray.map((filter) => {
-    return {
-      text: changeCaseFirstLetter(filter),
-      value: filter,
-    };
+    if (typeof filter == "object") {
+      return {
+        text: changeCaseFirstLetter(filter.name),
+        value: filter.value,
+      };
+    } else {
+      return {
+        text: changeCaseFirstLetter(filter),
+        value: filter,
+      };
+    }
   });
   return {
     filters: filterArray,
     onFilter: (value, record) => {
+      if (isLocalFilter == false) {
+        return true;
+      }
+      console.log("value", value, "record", record);
       let childern = recordValueToCompare.split(".");
       let finalVal = record;
       childern.forEach((child) => {
@@ -447,13 +511,166 @@ export const renderTagStatus = (status) => {
 };
 
 export const renderButton = (onButtonClick) => {
-  return(
+  return (
     <button
-        type="button"
-        onClick={() => onButtonClick()}
-        className="btn btn-primary book-btn"
+      type="button"
+      onClick={() => onButtonClick()}
+      className="btn btn-primary book-btn"
+    >
+      Book Appointment
+    </button>
+  );
+};
+
+export const renderDeleteButton = (onClickAction) => {
+  return (
+    <button
+      type="button"
+      onClick={() => onClickAction()}
+      className="btn btn-danger book-btn"
+    >
+      <i style={{ marginLeft: -3 }} class="fa fa-trash" aria-hidden="true"></i>
+    </button>
+  );
+};
+
+export const getDynamicSearchProps = (
+  context,
+  dataIndex,
+  handleSearch,
+  handleReset,
+  recordValueToCompare
+) => ({
+  filterDropdown: ({
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    clearFilters,
+  }) => (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={(node) => {
+          context.searchInput = node;
+        }}
+        placeholder={`Search ${dataIndex}`}
+        value={selectedKeys[0]}
+        onChange={(e) =>
+          setSelectedKeys(e.target.value ? [e.target.value] : [])
+        }
+        onPressEnter={() =>
+          handleSearch(selectedKeys, confirm, dataIndex, recordValueToCompare)
+        }
+        style={{ marginBottom: 8, display: "block" }}
+      />
+      <Space>
+        <Button
+          type="primary"
+          onClick={() =>
+            handleSearch(selectedKeys, confirm, dataIndex, recordValueToCompare)
+          }
+          size="small"
+          style={{ width: 90 }}
+        >
+          Search
+        </Button>
+        <Button
+          onClick={() => handleReset(clearFilters, dataIndex)}
+          size="small"
+          style={{ width: 90 }}
+        >
+          Reset
+        </Button>
+      </Space>
+    </div>
+  ),
+  onFilterDropdownVisibleChange: (visible) => {
+    if (visible) {
+      setTimeout(() => context.searchInput.select(), 100);
+    }
+  },
+});
+
+export const getUpdatedColumnSearchProps = (
+  context,
+  dataIndex,
+  handleSearch,
+  handleReset,
+  recordValueToCompare
+) => ({
+  filterDropdown: ({
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    clearFilters,
+  }) => (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={(node) => {
+          context.searchInput = node;
+        }}
+        placeholder={`Search ${dataIndex}`}
+        value={selectedKeys[0]}
+        onChange={(e) =>
+          setSelectedKeys(e.target.value ? [e.target.value] : [])
+        }
+        onPressEnter={() =>
+          handleSearch(selectedKeys, confirm, dataIndex, "name")
+        }
+        style={{ marginBottom: 8, display: "block" }}
+      />
+      <Space>
+        <Button
+          type="primary"
+          onClick={() => handleSearch(selectedKeys, confirm, dataIndex, "name")}
+          size="small"
+          style={{ width: 90 }}
+        >
+          Search
+        </Button>
+        <Button
+          onClick={() => handleReset(clearFilters, dataIndex)}
+          size="small"
+          style={{ width: 90 }}
+        >
+          Reset
+        </Button>
+      </Space>
+    </div>
+  ),
+  onFilterDropdownVisibleChange: (visible) => {
+    if (visible) {
+      setTimeout(() => context.searchInput.select(), 100);
+    }
+  },
+});
+
+export const getUpdatedColumnDropDownSearchProps = (
+  context,
+  items,
+  dataIndex,
+  handleSearch,
+  handleReset,
+  recordValueToCompare
+) => ({
+  filterDropdown: ({
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    clearFilters,
+  }) => (
+    <div style={{ padding: 8 }}>
+      <Select
+        style={{ width: 120 }}
+        onChange={(value) => {
+          setSelectedKeys(value ? (value === "All" ? [] : [value]) : []);
+          handleSearch(selectedKeys, confirm, dataIndex);
+        }}
       >
-        Book Appointment
-      </button>
-  )
-}
+        <Select.Option value="All">All</Select.Option>
+        {items.map((item) => {
+          return <Select.Option value={item}> {item} </Select.Option>;
+        })}
+      </Select>
+    </div>
+  ),
+});

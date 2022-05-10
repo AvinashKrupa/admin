@@ -23,10 +23,6 @@ class Dashboard extends Component {
     this.setState({
       loading: true,
     });
-    let appointments = await fetchApi({
-      url: "v1/appointments",
-      method: "GET",
-    });
     // let patients = await fetchApi({ url: "v1/patients", method: "GET" });
     let headerData = await fetchApi({
       url: "v1/dashboard/headerData",
@@ -34,7 +30,6 @@ class Dashboard extends Component {
     });
     // let doctors = await fetchApi({ url: "v1/doctors", method: "GET" });
     this.setState({
-      appointments: appointments.data,
       // patients: patients.data,
       // doctors: doctors.data,
       headerData: headerData.data,
@@ -120,7 +115,7 @@ class Dashboard extends Component {
                           </div>
                         </div>
                         <div className="dash-widget-info">
-                          <h6 className="text-muted">Appointment</h6>
+                          <h6 className="text-muted">Appointments</h6>
                           {/* <div className="progress progress-sm">
                         <div className="progress-bar bg-danger w-50"></div>
                       </div> */}
@@ -202,9 +197,7 @@ class Dashboard extends Component {
                 <div className="row">
                   <div className="col-md-12 col-lg-12">
                     <div className="card card-table flex-fill">
-                      <TableAppointmentList
-                        appointments={this.state.appointments}
-                      />
+                      <TableAppointmentList />
                     </div>
                   </div>
                 </div>

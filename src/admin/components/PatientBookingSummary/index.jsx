@@ -95,7 +95,6 @@ const PatientBookingSummary = (props) => {
         }
       })
       .catch((error) => {
-        console.log('error :>> ', error);
         // toast.error(error.message, { appearance: "error" });
         setShowCouponLoader(false);
       });
@@ -170,11 +169,10 @@ const PatientBookingSummary = (props) => {
         if (response.status === 200) {
           toast.success(response.message)
           setTimeout(() => {
-            props.history.push("/patient-list");
+            props.history.push("/patient-list/1");
           }, 1000);
         }
       }).catch((error) => {
-        console.log('error :>> ', error);
         // toast.error(error.message, { appearance: "error" });
         setShowLoader(false);
       });;
@@ -244,7 +242,7 @@ const PatientBookingSummary = (props) => {
               toast.success("Slot is successfully booked", {
                 appearance: "success",
               });
-              props.history.push("/patient-list");
+              props.history.push("/patient-list/1");
             } else {
               setShowLoader(false);
               toast.error(result.data.message, { appearance: "error" });

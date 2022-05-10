@@ -32,6 +32,7 @@ class Header extends Component {
         });
 
         // if(this.props.location.pathname.split("/")[1] === 'admin') {
+        // require('../../assets/plugins/bootstrap-rtl/css/bootstrap.min.css')
         require('../..//assets/css/feathericon.min.css')
         require('../../assets/js/app.js');
         require('../../assets/js/jquery-3.2.1.min.js');

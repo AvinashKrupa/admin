@@ -40,6 +40,7 @@ class CouponScreen extends Component {
         start_date: "",
         end_date: "",
         max_usages: "",
+        coupon_type: "user",
       },
     };
   }
@@ -81,15 +82,18 @@ class CouponScreen extends Component {
         toast.success(result.message);
         this.reloadData();
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     this.handleClose();
     await this.reloadData();
   }
 
   handleTitleChange = (e, key) => {
     let addDataSource = this.state.addDataSource;
-    addDataSource[key] = e.target.value;
+    if(key=='code'){
+      addDataSource[key] = e.target.value.toUpperCase();
+    }else{
+      addDataSource[key] = e.target.value;
+    }    
     this.setState({
       addDataSource: addDataSource,
     });
@@ -137,6 +141,7 @@ class CouponScreen extends Component {
             start_date: "",
             end_date: "",
             max_usages: "",
+            couponType: "",
           },
         });
         await this.reloadData();
@@ -169,8 +174,7 @@ class CouponScreen extends Component {
       if (result) {
         toast.success(result.message);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     this.handleClose();
     await this.reloadData();
   };
@@ -185,8 +189,7 @@ class CouponScreen extends Component {
       if (result) {
         toast.success(result.message);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     this.handleClose();
     await this.reloadData();
   };
@@ -213,6 +216,12 @@ class CouponScreen extends Component {
         dataIndex: "discount_pct",
         render: (text, record) => renderText(`${record.discount_pct}%`),
         sorter: (a, b) => sorterNumber(a.discount_pct, b.discount_pct),
+      },
+      {
+        title: "Coupon Tyoe",
+        dataIndex: "coupon_type",
+        render: (text, record) => renderText(record.coupon_type),
+        sorter: (a, b) => sorterText(a.coupon_type, b.coupon_type),
       },
       {
         title: "Max Usages",
@@ -246,7 +255,7 @@ class CouponScreen extends Component {
       },
       {
         title: "Actions",
-        align: 'right',
+        align: "right",
         render: (text, record) =>
           renderEditDisableActions(
             (elem, records) => {
@@ -352,6 +361,23 @@ class CouponScreen extends Component {
                         />
                       </div>
                     </div>
+                    <div className="col-md-6 col-sm-12">
+                      <div className="form-group">
+                        <label>Coupon Type</label>
+                        <select
+                          value={this.state.addDataSource.coupon_type}
+                          onChange={(e) => {
+                            this.handleTitleChange(e, "coupon_type");
+                          }}
+                          className="form-control"
+                          name="CouponType"
+                        >
+                          <option value={"user"}>User</option>
+                          <option value={"clinic"}>Clinic</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="col-md-6 col-sm-12">
                       <div className="form-group">
                         <label>Discount</label>

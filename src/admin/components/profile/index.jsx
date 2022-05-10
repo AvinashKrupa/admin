@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import SidebarNav from "../sidebar";
 import { Col, Form, Modal, Tab, Tabs } from "react-bootstrap";
 import DatePicker from "react-datepicker";
-import { fetchApi } from "../../../_utils/http-utils";
+import { fetchApi, fetchApiWithFileUpload } from "../../../_utils/http-utils";
 import {
   assign,
   changeCaseFirstLetter,
@@ -10,7 +10,6 @@ import {
   getAddress,
   getFullName,
 } from "../../../_utils/common-utils";
-import cameraIco from "../../assets/images/camera.svg";
 import whiteBgIco from "../../assets/images/white_background.png";
 import moment from "moment";
 import {
@@ -28,13 +27,18 @@ import MultiSelect from "../MultiSelect/MultiSelect";
 import UploadImage from "../UploadImage";
 import Spinner from "../spinner/customSpinner";
 import { isEmpty } from "../../../_utils/Validators";
+import InputWithDropdown from "../../commons/InputWithDropdown";
+import { getValidDate } from "../../../_utils/utilities";
 
 class Profile extends Component {
   constructor(props) {
     super(props);
+
     this.state = {
       loadingQual: false,
       loadingDept: false,
+      isEditNotes: false,
+      notes: "",
       loadingSpec: false,
       loadingLang: false,
       loadingCountry: false,
@@ -114,10 +118,20 @@ class Profile extends Component {
       selectedLanguage: [],
       experience: "",
       fees: "",
+      councilRegistrationNo: "",
+      dateOfRegistration: "",
+      dateOfRenewal: "",
+      medicalCertificate: null,
+      isMedicalCertUpdate: false,
+      signatureImage: null,
+      isSignatureImageUpdate: false,
     };
   }
 
   getDropdownData = async () => {
+    this.setState({
+      relationTypes: ["S/o", "W/o", "D/o"],
+    });
     this.setState({
       loadingQual: true,
       loadingSpec: true,
@@ -204,6 +218,14 @@ class Profile extends Component {
         data.additional_info &&
         data.additional_info.qualif &&
         data.additional_info.qualif.fee,
+      councilRegistrationNo: data.additional_info.qualif?.med_reg_num,
+      dateOfRegistration:
+        moment(data.additional_info.qualif?.reg_date).format("YYYY-MM-DD") ||
+        "",
+      dateOfRenewal:
+        moment(data.additional_info.qualif?.renewal_date).format(
+          "YYYY-MM-DD"
+        ) || "",
       experience:
         data.additional_info &&
         data.additional_info.qualif &&
@@ -224,11 +246,30 @@ class Profile extends Component {
   };
 
   async componentDidMount() {
+    await this.getUserProfile();
+  }
+
+  async getUserProfile() {
+    let req = { user_id: this.state.user_id, type: this.state.type };
+
+    if (this.props.location.state && this.props.location.state.profile_type) {
+      req["profile_type"] = this.props.location.state.profile_type;
+    }
+
+    console.log("req", req);
     let profile = await fetchApi({
       url: "v1/user/getUserProfile",
       method: "POST",
-      body: { user_id: this.state.user_id, type: this.state.type },
+      body: req,
     });
+    if (
+      profile &&
+      profile.data &&
+      profile.data.additional_info &&
+      profile.data.additional_info.notes
+    ) {
+      this.setState({ notes: profile.data.additional_info.notes });
+    }
     if (this.state.type === constants.USER_TYPE_PATIENT) {
       profile.data.additional_info.med_cond.map((info) => {
         if (info.name === "diabetic") {
@@ -361,7 +402,6 @@ class Profile extends Component {
     });
   }
 
-
   handleBookAppointment = (record) => {
     localStorage.setItem("SELECTED_PATIENT_ID", record._id);
     this.props.history.push("/patient/topConsultants");
@@ -449,9 +489,8 @@ class Profile extends Component {
       isVaccinated: id === "yes",
     });
     if (id === "no") {
-      this.setState({ vaccineDate: "",dose:"",vaccineName:"" });
+      this.setState({ vaccineDate: "", dose: "", vaccineName: "" });
     }
-    
 
     const newVaccinatedList = this.state.vaccinated.map((item) => {
       return Object.assign({}, item, { checked: item.id === id });
@@ -520,6 +559,20 @@ class Profile extends Component {
       updatedModel: data,
     });
   };
+  setRelativeName = (relativeName) => {
+    let data = this.state.updatedModel;
+    data.user.relative_name = relativeName;
+    this.setState({
+      updatedModel: data,
+    });
+  };
+  setRelationType = (relationType) => {
+    let data = this.state.updatedModel;
+    data.user.relation = relationType;
+    this.setState({
+      updatedModel: data,
+    });
+  };
 
   validateData = () => {
     if (this.state.isVaccinated) {
@@ -569,6 +622,25 @@ class Profile extends Component {
     return true;
   };
 
+  uploadImageWithData(endPoint, formData) {
+    return new Promise(async (resolve, reject) => {
+      fetchApiWithFileUpload({
+        method: "post",
+        url: endPoint,
+        formData: formData,
+        headers: { "Content-Type": undefined },
+      })
+        .then((response) => {
+          // this.props.getImage(response.data.url);
+
+          resolve(response);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  }
+
   updateProfile = async (e) => {
     const {
       isDiabetic,
@@ -596,6 +668,7 @@ class Profile extends Component {
 
     if (this.validateData()) {
       let data = this.state.updatedModel;
+
       let countryStateCity = this.state.countryStateCity;
       data.additional_info.address = {
         ...data.additional_info.address,
@@ -645,9 +718,9 @@ class Profile extends Component {
             (specl) => specl._id === selectedSpecialities
           );
           const speclData = {
-            title : SpecialitiesData.title,
-            _id : SpecialitiesData._id
-          }
+            title: SpecialitiesData.title,
+            _id: SpecialitiesData._id,
+          };
           data.additional_info.qualif.specl.push(speclData);
         }
       }
@@ -722,25 +795,69 @@ class Profile extends Component {
             user_id: data.user._id,
             type: this.state.type,
             language: selectedLanguage,
+            notes: data.additional_info.notes || "",
             address: data.additional_info.address,
             desc: profileDescription,
             qualif: {
               ...data.additional_info.qualif,
               exp: this.state.experience,
               fee: this.state.fees,
-              //   address: data.additional_info.address,
+              med_reg_num: this.state.councilRegistrationNo,
+              reg_date: this.state.dateOfRegistration,
+              renewal_date: this.state.dateOfRenewal,
             },
           };
-        }
-        let result = await fetchApi({
-          url: "v1/user/updateProfile",
-          method: "POST",
-          body: requestBody,
-        });
 
-        if (result) {
-          toast.success(result.message);
-          this.setState({ data: result.data });
+          let bodyFormData = new FormData();
+          bodyFormData.append("user_data", JSON.stringify(requestBody));
+
+          if (
+            this.state.medicalCertificate != undefined &&
+            this.state.medicalCertificate.uri != "" &&
+            this.state.isMedicalCertUpdate
+          ) {
+            console.log(this.state.medicalCertificate[0]);
+            bodyFormData.append(
+              "medical_cert_file",
+              this.state.medicalCertificate[0]
+            );
+          }
+          if (
+            this.state.signatureImage != undefined &&
+            this.state.signatureImage != "" &&
+            this.state.isSignatureImageUpdate
+          ) {
+            bodyFormData.append(
+              "digital_signature_file",
+              this.state.signatureImage[0]
+            );
+          }
+
+          bodyFormData.append("type", "profile");
+          this.uploadImageWithData("v1/user/updateProfile2", bodyFormData)
+            .then((response) => {
+              console.log(response.data);
+              toast.success(response.message);
+              this.getUserProfile();
+              this.setState({
+                medicalCertificate: null,
+                isMedicalCertUpdate: false,
+                signatureImage: null,
+                isSignatureImageUpdate: false,
+              });
+            })
+            .catch((error) => {});
+        } else {
+          let result = await fetchApi({
+            url: "v1/user/updateProfile",
+            method: "POST",
+            body: requestBody,
+          });
+
+          if (result) {
+            toast.success(result.message);
+            this.setState({ data: result.data });
+          }
         }
       } catch (e) {}
       this.setState({ showMenu: false, show: "" });
@@ -855,6 +972,34 @@ class Profile extends Component {
     return this.state.showMenu;
   }
 
+  updateNotesProfile = async (notes) => {
+    console.log("NOTES", notes);
+    const params = {
+      notes: notes,
+      user_id: this.state.user_id,
+      type: this.state.type,
+    };
+    console.log("params", params);
+    let bodyFormData = new FormData();
+    bodyFormData.append("user_data", JSON.stringify(params));
+
+    bodyFormData.append("type", "profile");
+    this.uploadImageWithData("v1/user/updateProfile2", bodyFormData)
+      .then((response) => {
+        console.log(response.data);
+        toast.success(response.message);
+        this.getUserProfile();
+        this.setState({
+          medicalCertificate: null,
+          isMedicalCertUpdate: false,
+          signatureImage: null,
+          isSignatureImageUpdate: false,
+          isEditNotes: false,
+        });
+      })
+      .catch((error) => {});
+  };
+
   updateUserProfile = async (file) => {
     let params = {
       dp: file,
@@ -874,6 +1019,11 @@ class Profile extends Component {
       }
     } catch (e) {}
   };
+
+  openInNewTab(url) {
+    const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+    if (newWindow) newWindow.opener = null;
+  }
 
   handleImage = (file) => {
     this.updateUserProfile(file);
@@ -934,6 +1084,13 @@ class Profile extends Component {
   //     this.updateProfile(e);
   //   }
   // };
+
+  handleWebFileSelection = async (e) => {
+    const targetFile = e.target.files[0];
+    const type = "web";
+    // let valid = await this.validateImageDimentions(e, type);
+    //this.newMethod(true, targetFile, type);
+  };
 
   render() {
     return (
@@ -1005,6 +1162,7 @@ class Profile extends Component {
                           {getAddress(this.state.data.additional_info.address)}
                         </div>
                       </div>
+
                       <div className="col-auto profile-btn">
                         {renderDropDown(
                           "Change Status",
@@ -1019,12 +1177,119 @@ class Profile extends Component {
                           () => this.handleDropdownClick(),
                           this.showDropDownMenu()
                         )}
-                        {this.state.type == constants.USER_TYPE_PATIENT && renderButton(() =>
-                          this.handleBookAppointment(
-                            this.state.data.additional_info
-                          )
+                        {this.state.type == constants.USER_TYPE_PATIENT &&
+                          renderButton(() =>
+                            this.handleBookAppointment(
+                              this.state.data.additional_info
+                            )
+                          )}
+                      </div>
+                    </div>
+
+                    <div className="col-sm-12">
+                      <div className="row">
+                        <p style={{ marginTop: 26 }} className="ext-muted mb-0">
+                          Notes
+                        </p>
+
+                        {!this.state.isEditNotes && (
+                          <div className="col-md-3">
+                            <div className="form-group">
+                              <button
+                                style={{
+                                  height: 30,
+                                  width: 30,
+                                  marginTop: 16,
+                                }}
+                                type="button"
+                                onClick={(e) => {
+                                  this.setState({
+                                    isEditNotes: true,
+                                  });
+                                }}
+                                className="btn btn-primary"
+                              >
+                                <i
+                                  style={{ marginLeft: -3 }}
+                                  class="fa fa-edit"
+                                  aria-hidden="true"
+                                ></i>
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
+
+                      {!this.state.isEditNotes ? (
+                        <p className="col-sm-10">
+                          {this.state.data.additional_info.notes || ""}
+                        </p>
+                      ) : (
+                        <div className="row">
+                          <div className="col-md-6">
+                            <div className="form-group">
+                              <textarea
+                                rows={8}
+                                value={this.state.notes}
+                                className="form-control"
+                                defaultValue={""}
+                                name="notes"
+                                onChange={(e) => {
+                                  this.setState({
+                                    notes: e.target.value,
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="form-group">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  if (this.state.isEditNotes) {
+                                    this.setState(
+                                      {
+                                        updatedModel: {
+                                          user: { ...this.state.data.user },
+                                          additional_info: {
+                                            ...this.state.data.additional_info,
+                                          },
+                                        },
+                                      },
+                                      () => {
+                                        this.updateNotesProfile(
+                                          this.state.notes
+                                        );
+                                      }
+                                    );
+                                  } else {
+                                    this.setState({
+                                      isEditNotes: !this.state.isEditNotes,
+                                    });
+                                  }
+                                }}
+                                className="btn btn-primary btn-block"
+                              >
+                                Save Changes
+                              </button>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="form-group">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  this.setState({ isEditNotes: false });
+                                }}
+                                className="btn btn-primary btn-block"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1065,10 +1330,28 @@ class Profile extends Component {
                           </div>
                           <div className="row">
                             <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                              Relation
+                            </p>
+                            <p className="col-sm-10">
+                              {this.state.data.additional_info.relation}
+                            </p>
+                          </div>
+                          <div className="row">
+                            <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                              Relative Name
+                            </p>
+                            <p className="col-sm-10">
+                              {this.state.data.additional_info.relative_name}
+                            </p>
+                          </div>
+                          <div className="row">
+                            <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
                               Date of Birth
                             </p>
                             <p className="col-sm-10">
-                              {this.state.data.user.dob}
+                              {moment(this.state.data.user.dob).format(
+                                "DD/MM/YYYY"
+                              ) || ""}
                             </p>
                           </div>
                           {this.state.type === constants.USER_TYPE_DOCTOR && (
@@ -1173,6 +1456,7 @@ class Profile extends Component {
                                 <i className="fa fa-edit mr-1"></i>Edit
                               </a>
                             </h5>
+
                             <div className="row">
                               <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
                                 Qualification
@@ -1182,6 +1466,39 @@ class Profile extends Component {
                                   this.state.data.additional_info.qualif
                                     .highest_qual.name
                                 }
+                              </p>
+                            </div>
+                            <div className="row">
+                              <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                                Medical Council Registration Number
+                              </p>
+                              <p className="col-sm-10">
+                                {
+                                  this.state.data.additional_info.qualif
+                                    .med_reg_num
+                                }
+                              </p>
+                            </div>
+                            <div className="row">
+                              <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                                Date of Registration
+                              </p>
+                              <p className="col-sm-10">
+                                {moment(
+                                  this.state.data.additional_info.qualif
+                                    .reg_date
+                                ).format("DD/MM/YYYY") || ""}
+                              </p>
+                            </div>
+                            <div className="row">
+                              <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                                Date of Renewal
+                              </p>
+                              <p className="col-sm-10">
+                                {moment(
+                                  this.state.data.additional_info.qualif
+                                    .renewal_date
+                                ).format("DD/MM/YYYY") || ""}
                               </p>
                             </div>
                             <div className="row">
@@ -1224,6 +1541,50 @@ class Profile extends Component {
                               </p>
                               <p className="col-sm-10">
                                 ₹{this.state.data.additional_info.qualif.fee}
+                              </p>
+                            </div>
+                            <div className="row">
+                              <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                                Medical Certificate
+                              </p>
+                              <p className="col-sm-3">
+                                {this.state.data.additional_info
+                                  .medical_cert_url ? (
+                                  <button
+                                    type="submit"
+                                    onClick={() => {
+                                      this.openInNewTab(
+                                        this.state.data.additional_info
+                                          .medical_cert_url
+                                      );
+                                    }}
+                                    className="btn btn-primary btn-block"
+                                  >
+                                    View Report
+                                  </button>
+                                ) : (
+                                  <p className="col-sm-10">Not found</p>
+                                )}
+                              </p>
+                            </div>
+                            <div className="row">
+                              <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                                Doctor Signature
+                              </p>
+                              <p className="col-sm-10">
+                                {this.state.data.additional_info
+                                  .digital_signature_url ? (
+                                  <img
+                                    style={{ width: 280, height: 200 }}
+                                    alt="signature"
+                                    src={
+                                      this.state.data.additional_info
+                                        .digital_signature_url
+                                    }
+                                  />
+                                ) : (
+                                  <p className="col-sm-10">Not found</p>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1459,7 +1820,7 @@ class Profile extends Component {
                           className="form-control"
                           name="first_name"
                           onChange={this.handleChange}
-                          maxlength="20"
+                          maxLength="20"
                           value={this.state.updatedModel.user.first_name}
                         />
                       </div>
@@ -1472,10 +1833,30 @@ class Profile extends Component {
                           className="form-control"
                           name="last_name"
                           onChange={this.handleChange}
-                          maxlength="20"
+                          maxLength="20"
                           value={this.state.updatedModel.user.last_name}
                         />
                       </div>
+                    </div>
+                    <div className="col-12 col-sm-12">
+                      <InputWithDropdown
+                        type="text"
+                        placeholder="Enter Name"
+                        id="relativeName"
+                        label="Relative Name"
+                        maxLength="20"
+                        value={
+                          this.state.updatedModel.user.relative_name ??
+                          this.state.updatedModel.additional_info.relative_name
+                        }
+                        selectedValue={
+                          this.state.updatedModel.user.relation ??
+                          this.state.updatedModel.additional_info.relation
+                        }
+                        onChange={this.setRelativeName}
+                        options={this.state.relationTypes}
+                        optionChange={this.setRelationType}
+                      />
                     </div>
                     <div className="col-12">
                       <div className="form-group">
@@ -1626,6 +2007,7 @@ class Profile extends Component {
                           value={this.state.countryStateCity.country.id}
                           onChange={(e) => this.getStateForCountry(e)}
                           className="form-control"
+                          disabled
                         >
                           {this.state.countries?.map((country) => {
                             return (
@@ -1795,6 +2177,60 @@ class Profile extends Component {
                           </select>
                         </div>
                       </div>
+                      <div className="col-12 col-sm-12">
+                        <div className="form-group">
+                          <label>Medical Council Registration Number</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            onChange={(e) => {
+                              this.setState({
+                                councilRegistrationNo: e.target.value,
+                              });
+                            }}
+                            name="additional_info.qualif.med_reg_num"
+                            value={this.state?.councilRegistrationNo}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-12 col-sm-12">
+                        <div className="form-group">
+                          <label>Date of Registration</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            onChange={(e) => {
+                              this.setState({
+                                dateOfRegistration: getValidDate(
+                                  e.target.value
+                                ),
+                              });
+                            }}
+                            name="additional_info.qualif.reg_date"
+                            value={this.state?.dateOfRegistration}
+                            min={moment(new Date())
+                              .subtract(100, "years")
+                              .format("YYYY-MM-DD")}
+                            max={moment(new Date()).format("YYYY-MM-DD")}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-12 col-sm-12">
+                        <div className="form-group">
+                          <label>Date of Renewal</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            onChange={(e) => {
+                              this.setState({
+                                dateOfRenewal: getValidDate(e.target.value),
+                              });
+                            }}
+                            name="additional_info.qualif.renewal_date"
+                            value={this.state?.dateOfRenewal}
+                          />
+                        </div>
+                      </div>
                       {this.state.data.additional_info.qualif.exp && (
                         <div className="col-12 col-sm-6">
                           <div className="form-group">
@@ -1860,6 +2296,58 @@ class Profile extends Component {
                           </select>
                         </div>
                       </div>
+                      <div className="row">
+                        {/* <p className="col-sm-2 text-muted text-sm-right mb-0 mb-sm-3">
+                          Doctor Signature
+                        </p>
+                        <p className="col-sm-10">
+                          {this.state.data.additional_info
+                            .digital_signature_url ? (
+                            <img
+                              style={{ width: 280, height: 200 }}
+                              alt="signature"
+                              src={
+                                this.state.data.additional_info
+                                  .digital_signature_url
+                              }
+                            />
+                          ) : (
+                            <p className="col-sm-10">Not found</p>
+                          )}
+                        </p> */}
+                        <div className="col-12 col-sm-6">
+                          <div className="form-group">
+                            <label>Update Signature</label>
+                            <input
+                              type="file"
+                              className="form-control"
+                              ref={(ref) => (this.fileInput = ref)}
+                              onChange={(e) =>
+                                this.setState({
+                                  signatureImage: e.target.files,
+                                  isSignatureImageUpdate: true,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="col-12 col-sm-6">
+                          <div className="form-group">
+                            <label>Medical Certificate</label>
+                            <input
+                              type="file"
+                              className="form-control"
+                              ref={(ref) => (this.fileInput = ref)}
+                              onChange={(e) =>
+                                this.setState({
+                                  medicalCertificate: e.target.files,
+                                  isMedicalCertUpdate: true,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <button
                       type="submit"
@@ -1893,7 +2381,10 @@ class Profile extends Component {
                           {/*<Col md>*/}
                           <div className="form-group">
                             <Radio
-                              labelStyle={{ paddingLeft: "15px", fontSize: "16px" }}
+                              labelStyle={{
+                                paddingLeft: "15px",
+                                fontSize: "16px",
+                              }}
                               inputRowStyle={{
                                 paddingLeft: "15px",
                                 marginLeft: "5px",
@@ -1932,7 +2423,10 @@ class Profile extends Component {
                       <div className="col-12 col-sm-6">
                         <div className="form-group">
                           <Radio
-                            labelStyle={{ paddingLeft: "15px", fontSize: "16px" }}
+                            labelStyle={{
+                              paddingLeft: "15px",
+                              fontSize: "16px",
+                            }}
                             inputRowStyle={{
                               paddingLeft: "15px",
                               marginLeft: "5px",
@@ -1971,7 +2465,10 @@ class Profile extends Component {
                           <Col md className="no-padding">
                             <div className="form-group">
                               <Radio
-                                labelStyle={{ paddingLeft: "15px", fontSize: "16px" }}
+                                labelStyle={{
+                                  paddingLeft: "15px",
+                                  fontSize: "16px",
+                                }}
                                 inputRowStyle={{
                                   paddingLeft: "15px",
                                   marginLeft: "5px",
@@ -2007,7 +2504,10 @@ class Profile extends Component {
                           <Col md className="no-padding">
                             <div className="form-group">
                               <Radio
-                                labelStyle={{ paddingLeft: "15px", fontSize: "16px" }}
+                                labelStyle={{
+                                  paddingLeft: "15px",
+                                  fontSize: "16px",
+                                }}
                                 inputRowStyle={{
                                   paddingLeft: "15px",
                                   marginLeft: "5px",
@@ -2047,7 +2547,7 @@ class Profile extends Component {
                               id="diagCovid"
                               options={this.state.covids}
                               handleSelect={this.handleCovids}
-                              labelStyle={{fontSize: "16px" }}
+                              labelStyle={{ fontSize: "16px" }}
                             />
                           </div>
                         </Col>
@@ -2059,7 +2559,7 @@ class Profile extends Component {
                                   required={true}
                                   type="text"
                                   labelStyle={{ fontSize: "16px" }}
-                                  inputStyle={{paddingLeft: "15px"}}
+                                  inputStyle={{ paddingLeft: "15px" }}
                                   placeholder="Enter additional details"
                                   label="Provide additional details of Covid illness"
                                   value={this.state.covidDetails}
