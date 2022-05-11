@@ -39,7 +39,7 @@ const ColorCards = (props) => {
           <InputGroup>
             <div
               className="color_card_circle"
-              style={{ background: "#28A3DA" }}
+              style={{ background: "#007c7c" }}
             >
               <Image src={icon_badge} />
             </div>

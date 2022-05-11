@@ -16,7 +16,7 @@ const useStyles = makeStyles((theme) => ({
   },
   root: {
     "&$checked": {
-      color: "#28a3da",
+      color: "#007c7c",
     },
   },
   selectAllText: {

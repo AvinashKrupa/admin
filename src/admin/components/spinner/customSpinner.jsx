@@ -14,7 +14,7 @@ const CustomSpinner = ({ showLoader, width, height, sty, type = "ThreeDots" }) =
         <div style={style}>
           <Loader
             type={type}
-            color="#1b5a90"
+            color="#007c7c"
             height={width || 80}
             width={height || 80}
           />

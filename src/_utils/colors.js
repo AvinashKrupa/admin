@@ -29,7 +29,7 @@ export function getColorForAppointmentStatus(status) {
 }
 
 export const Colors = {
-  primaryColor: "#28A3DA",
+  primaryColor: "#007c7c",
   red: "red",
   green: "green",
   lightPrimaryColor: "rgba(40,163,218, 0.2)",

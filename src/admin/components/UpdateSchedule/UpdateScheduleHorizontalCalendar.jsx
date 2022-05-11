@@ -49,7 +49,7 @@ const UpdateScheduleHorizontalCalendar = (props) => {
         return (
             <>
                 <Button className="calendar-days-button"
-                        style={{backgroundColor: active ? '#28A3DA' : 'white'}}
+                        style={{backgroundColor: active ? '#007c7c' : 'white'}}
                         onClick={(e) => handleDaysClick(dateNumber, info)}
                 >
                     <span className="days-button-text"
