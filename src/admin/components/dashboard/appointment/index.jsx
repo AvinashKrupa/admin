@@ -70,7 +70,7 @@ class TableAppointmentList extends Component {
     const columns = [
       {
         title: "Appointment ID",
-        dataIndex: "huno_id",
+        dataIndex: "livemed_id",
       },
       {
         title: "Doctor Name",
