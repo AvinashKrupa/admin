@@ -360,7 +360,7 @@ class Appointments extends Component {
         appointments?.data?.docs.forEach((element) => {
           
           const dataObj = {
-            appointment_ID: element.livemed_id || "",
+            appointment_ID: element.huno_id || "",
             appointment_time: `${moment(element?.time?.utc_time).format("DD/MM/YYYY")} ${element?.time?.slot} - ${moment(element?.time?.slot, "HH:mm").add(10, "minutes").format("HH:mm")}`,
             patient: `${
               element && element.patient && element.patient.first_name
@@ -441,8 +441,8 @@ class Appointments extends Component {
     const columns = [
       {
         title: "Appointment ID",
-        dataIndex: "livemed_id",
-        render: (text, record) => <div role="button" className="text-primary" onClick={()=>this.showAppointmentDetail(record._id)}>{record.livemed_id}</div>,
+        dataIndex: "huno_id",
+        render: (text, record) => <div role="button" className="text-primary" onClick={()=>this.showAppointmentDetail(record._id)}>{record.huno_id}</div>,
         sorter: true,
       },
       {
@@ -564,7 +564,7 @@ class Appointments extends Component {
       appointment_id: {
         header: "Appointment ID",
         formatter: (_fieldValue, record) => {
-          return record?.livemed_id;
+          return record?.huno_id;
         },
       },
       appointment_time: {
@@ -931,7 +931,7 @@ class Appointments extends Component {
                           <div className="row">                              
                               <div className="col-md-12">
                                 <table className="table card-table">
-                                  <tr><th className="text-muted">Appointment ID</th><td>{this.state.show.record.livemed_id}</td></tr>
+                                  <tr><th className="text-muted">Appointment ID</th><td>{this.state.show.record.huno_id}</td></tr>
                                   <tr><th className="text-muted">Appointment Time</th><td>{this.state.show.record.time.date} {this.state.show.record.time.slot}</td></tr>
                                   <tr><th className="text-muted">Reason</th><td>{this.state.show.record.reason}</td></tr>
                                   <tr><th className="text-muted">Complaints</th><td>{this.state.show.record.complaints}</td></tr>

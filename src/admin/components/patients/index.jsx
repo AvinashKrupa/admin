@@ -303,7 +303,7 @@ class Patients extends Component {
           });
 
           const dataObj = {
-            id: element?.livemed_id,
+            id: element?.huno_id,
             name: `${
               element?.user_id?.first_name + " " + element?.user_id?.last_name
             }`,
