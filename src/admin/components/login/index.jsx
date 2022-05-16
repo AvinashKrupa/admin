@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {Link} from 'react-router-dom';
-import Logo from '../../assets/images/logo.png';
+//import Logo from '../../assets/images/logo.png';
+import {Logo} from '../../../_utils/constants';
 import {fetchApi} from "../../../_utils/http-utils";
 import toast from 'react-hot-toast';
 import {setJwtToken, setProfileData} from "../../../_utils/localStorage/SessionManager";

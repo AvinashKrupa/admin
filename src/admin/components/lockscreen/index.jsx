@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import IMG01 from '../../assets/images/logo.png'; 
+//import Logo from '../../assets/images/logo.png';
+import {Logo} from '../../../_utils/constants';
 import IMG02 from '../../assets/images/patient.jpg'; 
 import { Link } from 'react-router-dom';
 
@@ -11,7 +12,7 @@ class Lockscreen extends Component{
             	<div className="container">
                 	<div className="loginbox">
                     	<div className="login-left">
-						     <img className="img-fluid" src={IMG01} alt="Logo" />
+						     <img className="img-fluid" src={Logo} alt="Logo" />
                         </div>
                         <div className="login-right">
 							<div className="login-right-wrap">

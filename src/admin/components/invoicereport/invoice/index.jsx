@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import SidebarNav from "../../sidebar";
-import Logo from '../../../assets/images/logo.png';
+//import Logo from '../../../assets/images/logo.png';
+import {Logo} from '../../../../_utils/constants';
 
 class Invoice extends Component {
     render() {

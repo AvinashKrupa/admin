@@ -1,6 +1,7 @@
 import React, {Component} from "react";
-import logo from "../../assets/images/logo.png";
-import logoicon from "../../assets/images/logo-small.png";
+//import logo from "../../assets/images/logo.png";
+import {Logo} from '../../../_utils/constants';
+import logoicon from "../../assets/images/icon.png";
 import avatar from "../../assets/images/avatar-01.jpg";
 import Dropdown from "react-bootstrap/Dropdown";
 import toast from "react-hot-toast";
@@ -83,7 +84,7 @@ class Header extends Component {
                 {/* Logo */}
                 <div className="header-left">
                     <a href="/dashboard" className="logo">
-                        <img src={logo} alt="Logo"/>
+                        <img src={logoicon} alt="Logo"/>
                     </a>
                     <a href="/dashboard" className="logo logo-small">
                         <img src={logoicon} alt="Logo" width="30" height="30"/>
