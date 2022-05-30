@@ -1,5 +1,5 @@
 const { io } = require("socket.io-client");
-const URL = "https://socket.livemed.io";
+const URL = "https://socket.diamed.app";
 
 // const URL = "http://localhost:3007";
 const options = {

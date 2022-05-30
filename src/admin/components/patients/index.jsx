@@ -477,7 +477,7 @@ class Patients extends Component {
     ];
 
     const headers = [
-      { label: "LiveMedic ID", key: "id" },
+      { label: "DiaMed ID", key: "id" },
       { label: "Patient Name", key: "name" },
       { label: "Relation", key: "relation" },
       { label: "Relative Name", key: "relative_name" },
