@@ -62,7 +62,7 @@ const handleSelectedDate = (dateValue) => {
   return (
         <>
           <Button className={'days-button slot-booking-btn'}
-            style={{backgroundColor: active ? '#007c7c': 'white'}}
+            style={{backgroundColor: active ? 'rgba(32,61,118, 1)': 'white'}}
             onClick={(e) =>  handleDaysClick(dateNumber, info)}
             >
           <span className="days-button-text" style={{color: active ? 'white': ''}}>{dateNumber} {now} { window.screen.availWidth >  700 && month}</span>

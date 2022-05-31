@@ -14,7 +14,7 @@ const Spinner = ({ showLoader, width, height }) => {
         <div style={style}>
           <Loader
             type="ThreeDots"
-            color="#007c7c"
+            color="rgba(32,61,118, 1)"
             height={width || 80}
             width={height || 80}
           />

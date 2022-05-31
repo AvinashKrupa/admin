@@ -34,7 +34,7 @@ const MultiSelect = ({ label, options, selected, handleChange, className }) => {
           <MenuItem key={option._id} value={option._id}>
             <ListItemIcon>
               <Checkbox
-                style={{ color: "#007c7c" }}
+                style={{ color: "rgba(32,61,118, 1)" }}
                 checked={selected.indexOf(option._id) > -1}
               />
             </ListItemIcon>

@@ -21,7 +21,7 @@ const useColorlibStepIconStyles = makeStyles({
     borderRadius: "50%",
     justifyContent: "center",
     alignItems: "center",
-    border: "4.96461px solid #007c7c",
+    border: "4.96461px solid rgba(32,61,118, 1)",
   },
   active: {
     background: "rgba(40, 163, 218, 1)",

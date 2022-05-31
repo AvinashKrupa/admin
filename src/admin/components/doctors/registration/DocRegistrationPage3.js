@@ -199,7 +199,7 @@ const DocRegistrationPage3 = (props) => {
                             let active = selectedDays.includes(day);
                             return (
                                 <Button key={index} className={'reg-days-button'} onClick={() => handleDaysClick(day)}
-                                        style={{backgroundColor: active ? '#007c7c' : 'white'}}>
+                                        style={{backgroundColor: active ? 'rgba(32,61,118, 1)' : 'white'}}>
                                     <span className="days-button-text"
                                           style={{color: active ? "white" : ""}}>{day}</span>
                                 </Button>

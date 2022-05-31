@@ -16,7 +16,7 @@ $(function(){
 	    xkey: 'y',
 	    ykeys: ['a'],
 	    labels: ['Revenue'],
-	    lineColors: ['#007c7c'],
+	    lineColors: ['rgba(32,61,118, 1)'],
 	    lineWidth: 2,
 		
      	fillOpacity: 0.5,
@@ -40,7 +40,7 @@ $(function(){
 	    xkey: 'y',
 	    ykeys: ['a', 'b'],
 	    labels: ['Doctors', 'Patients'],
-	    lineColors: ['#007c7c','#ff9d00'],
+	    lineColors: ['rgba(32,61,118, 1)','#ff9d00'],
 	    lineWidth: 1,
 	    gridTextSize: 10,
 	    hideHover: 'auto',

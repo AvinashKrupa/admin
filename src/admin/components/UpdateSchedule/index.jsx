@@ -532,7 +532,7 @@ const UpdateSchedule = ({ data }) => {
               <Button
                 className={"days-selection-button"}
                 onClick={(e) => handleDaysClick(index)}
-                style={{ backgroundColor: active ? "#007c7c" : "white" }}
+                style={{ backgroundColor: active ? "rgba(32,61,118, 1)" : "white" }}
               >
                 <span
                   className="days-button-text"

@@ -213,7 +213,7 @@ const PatientBookingSummary = (props) => {
         contact: `${userInfo1.mobile_number}`,
         name: `${userInfo1.first_name} ${doctorDetails.last_name}`,
       },
-      theme: { color: "#007c7c" },
+      theme: { color: "rgba(32,61,118, 1)" },
       redirect: false,
       order_id: transaction_id,
       modal: {
