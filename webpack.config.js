@@ -33,7 +33,7 @@ module.exports = {
   externals: {
     // global app config object
     config: JSON.stringify({
-      // apiUrl: 'http://localhost:3005/',
+       //apiUrl: 'http://localhost:3005/',
       apiUrl: "https://api.diamed.app/",
       imageapiUrl: "",
       publicPath: "/",
