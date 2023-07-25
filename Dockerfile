@@ -13,7 +13,7 @@
 #COPY --from=react-build src/admin /usr/share/nginx/html
 #EXPOSE 80
 #CMD ["nginx", "-g", "daemon off;"]
-FROM node:latest
+FROM node:14.4-alpine3.11
 
 WORKDIR /usr/src/app
 
