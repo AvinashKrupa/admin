@@ -1,6 +1,6 @@
 # Stage 1
 FROM node:14.4-alpine3.11 as react-build
-WORKDIR src/admin
+WORKDIR src/admin/app-universal
 COPY . ./
 RUN npm install
 RUN npm run build
